@@ -68,6 +68,7 @@ Config/testthat/edition: 3
 Collate:
     'RcppExports.R'
     'lazy.R'
+    'agf_chunked.R'
     'Banksy-package.R'
     'cluster.R'
     'computation.R'

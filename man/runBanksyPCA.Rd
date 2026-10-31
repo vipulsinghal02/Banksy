@@ -21,6 +21,7 @@ runBanksyPCA(
   spatial_mode = c("kNN_median", "kNN_r", "kNN_rn", "kNN_rank", "kNN_unif", "rNN_gauss"),
   split_scale = TRUE,
   num_cores = NULL,
+  agf_control = list(),
   verbose = TRUE,
   ...
 )
@@ -31,7 +32,7 @@ runBanksyPCA(
   object with \code{computeBanksy} ran (not required when \code{lazy=TRUE}).}
 
 \item{use_agf}{A logical vector specifying whether to use the AGF for
-computing principal components. Ignored when \code{lazy=TRUE}.}
+computing principal components. With \code{lazy=TRUE}, a single value.}
 
 \item{lambda}{A numeric vector in \eqn{\in [0,1]} specifying a spatial
 weighting parameter. Larger values (e.g. 0.8) incorporate more spatial
@@ -53,7 +54,7 @@ When \code{lazy=TRUE}, also used for per-group kNN computation.}
 
 \item{M}{Advanced usage. An integer vector specifying the highest azimuthal
 Fourier harmonic to use. If specified, overwrites the \code{use_agf}
-argument. Ignored when \code{lazy=TRUE}.}
+argument. With \code{lazy=TRUE}, a single value of 0 or 1.}
 
 \item{seed}{Seed for PCA. If not specified, no seed is set; when
 \code{lazy=TRUE} the solver then starts from a fixed vector and is
@@ -70,7 +71,8 @@ and faster runtime. \code{"r"} uses R's irlba package.}
 corresponding to spatial coordinates. Only used when \code{lazy=TRUE}.}
 
 \item{k_geom}{An integer scalar specifying the number of neighbors to use.
-Only used when \code{lazy=TRUE}.}
+Only used when \code{lazy=TRUE}. With the AGF, may be of length 2: the
+neighbours for the mean neighbourhood and for the AGF respectively.}
 
 \item{spatial_mode}{A string scalar specifying the kernel for neighborhood
 computation. Only used when \code{lazy=TRUE}.}
@@ -80,7 +82,19 @@ per group. Only used when \code{lazy=TRUE} and \code{group} is not NULL.}
 
 \item{num_cores}{An integer scalar specifying the number of cores for
 parallel kNN via mclapply. Only used when \code{lazy=TRUE} and
-\code{group} is not NULL.}
+\code{group} is not NULL. With the AGF, also the number of workers that
+process chunks in parallel (unless set in \code{agf_control}).}
+
+\item{agf_control}{A list of settings for the lazy AGF path, used when
+\code{lazy=TRUE} and the AGF is requested. Entries (defaults in
+brackets): \code{method} ["rsvd"] or "gram"; \code{n_iter} [4], the
+number of power passes (the maximum, if \code{tol} is set);
+\code{oversample} [10], extra subspace dimensions beyond \code{npcs};
+\code{tol} [NULL], stop early once a pass raises the captured variance
+by less than this fraction; \code{chunk_size} [NULL], cells per chunk,
+derived from \code{mem_per_worker_gb} [2] when NULL; \code{num_cores}
+[1], parallel workers (unix only); \code{center} [TRUE], centre the AGF
+in local neighbourhoods.}
 
 \item{verbose}{A logical scalar specifying verbosity.}
 
@@ -103,7 +117,17 @@ When \code{lazy=TRUE}, PCA is computed without materializing the full BANKSY
 matrix in memory using an implicit linear operator. This enables analysis of
 very large datasets (millions of cells). The lazy path does not require
 \code{\link{computeBanksy}} to be run first — it computes the kNN graph
-internally. Currently only supported for M=0 (no AGF).
+internally.
+
+With the AGF (\code{use_agf=TRUE} or \code{M=1}), the lazy operator does
+not apply, because the AGF is not linear in the expression. Instead the
+BANKSY matrix is rebuilt one chunk of cells at a time on every pass over the
+data and never stored. Two solvers are available through
+\code{agf_control$method}: \code{"rsvd"} (randomized subspace iteration;
+approximate, \code{n_iter + 3} passes) and \code{"gram"} (feature
+covariance; exact, 3 passes, memory quadratic in the number of genes).
+Use \code{\link{planBanksyAGF}} to choose \code{chunk_size} and
+\code{num_cores} for a given amount of RAM.
 }
 \examples{
 data(rings)

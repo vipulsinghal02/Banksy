@@ -130,9 +130,10 @@ test_that("lazy PCA seed varies the start reproducibly", {
     expect_gt(subspace_overlap(s1, s3), 0.99)
 })
 
-test_that("lazy PCA rejects the AGF", {
-    expect_error(lazy_pca(spe, use_agf = TRUE, k_geom = k_geom))
-    expect_error(lazy_pca(spe, M = 1, k_geom = k_geom))
+test_that("lazy PCA takes M = 1 (chunked AGF) but not higher harmonics", {
+    expect_error(lazy_pca(spe, M = 2, k_geom = k_geom), "single M")
+    out <- lazy_pca(spe, M = 1, k_geom = k_geom)
+    expect_true(sprintf("PCA_M1_lam%s", lambda) %in% reducedDimNames(out))
 })
 
 test_that("lazy PCA rejects empty groups", {
